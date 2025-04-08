@@ -26,8 +26,37 @@ function! _VFormatFile()
 	endif
 endfunction
 
+function! _VAllmanFormat()
+    " This function is ment to be used on single structs to align them
+    " using v fmt without loosing Allman format
+    let l:v_vim_reg_backup = [getreg('0'), getregtype('0')]")
+    normal! gvy
+
+    let l:selection = getreg('0')
+    let l:substitution = trim(system("v fmt -", l:selection))
+
+    if v:shell_error != 0
+        echoerr "While formatting the buffer via vfmt, the following error occurred:"
+        echoerr printf("ERROR(%d): %s", v:shell_error, l:substitution)
+    else
+        call setreg('0', l:substitution, l:v_vim_reg_backup[1])
+        normal! gvp
+
+        let l:line = getline('.')
+        let l:repl = substitute(l:line, '\s*{$', "\n{", '')
+
+        normal! dd
+        call setreg('0', l:repl, 'V')
+        normal! "0P
+    endif
+
+    call setreg('0', l:v_vim_reg_backup[0], l:v_vim_reg_backup[1])
+endfunction
+
 if has('autocmd')
 	augroup v_fmt
 		autocmd BufWritePre *.v call _VFormatFile()
 	augroup END
 endif
+
+vnoremap F :<c-u>call _VAllmanFormat()<CR>
